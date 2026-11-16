@@ -117,6 +117,9 @@ def find_dockerignore_file(context_directory: Path, dockerfile_path: Path | None
     file exists in the same directory as <dockerfile_name>
     Finds the most specific dockerignore file that exists.
     """
+    context_directory = context_directory.absolute()
+    if dockerfile_path is not None:
+        dockerfile_path = dockerfile_path.absolute()
 
     def valid_dockerignore_file(fp):
         # fp has to exist
