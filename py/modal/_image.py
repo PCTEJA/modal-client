@@ -47,6 +47,7 @@ from ._utils.docker_utils import (
 from ._utils.function_utils import FunctionSourceInfo, parse_gpu_config
 from ._utils.mount_utils import validate_only_modal_volumes, validate_volumes_by_object_id
 from ._utils.name_utils import check_object_name
+from ._utils.pattern_utils import read_ignorefile
 from .client import _Client
 from .cloud_bucket_mount import _CloudBucketMount
 from .config import config, logger, user_config_path
@@ -442,11 +443,11 @@ def _create_context_mount_function(
             nonlocal context_dir
             context_dir = Path.cwd() if context_dir is None else Path(context_dir).absolute()
             dockerignore_file = find_dockerignore_file(context_dir, dockerfile_path)
-            ignore_fn = (
-                FilePatternMatcher(*dockerignore_file.read_text("utf8").splitlines())
-                if dockerignore_file
-                else _ignore_fn(())
-            )
+            if dockerignore_file:
+                with dockerignore_file.open(encoding="utf8") as dockerignore:
+                    ignore_fn = FilePatternMatcher(*read_ignorefile(dockerignore))
+            else:
+                ignore_fn = _ignore_fn(())
 
             cmds = dockerfile_path.read_text("utf8").splitlines() if dockerfile_path else dockerfile_cmds
             return _create_context_mount(cmds, ignore_fn=ignore_fn, context_dir=context_dir)

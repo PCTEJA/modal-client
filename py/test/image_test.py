@@ -1591,6 +1591,44 @@ def test_image_dockerfile_copy_auto_dockerignore(builder_version, servicer, clie
 
 @pytest.mark.parametrize("use_dockerfile", (True, False))
 @pytest.mark.usefixtures("tmp_cwd")
+def test_image_dockerfile_copy_auto_dockerignore_leading_slash_exception(
+    builder_version, servicer, client, use_dockerfile
+):
+    rel_top_dir = Path("top")
+    rel_top_dir.mkdir()
+    (rel_top_dir / "data.txt").write_text("world")
+    (rel_top_dir / "keep.txt").write_text("world")
+    (rel_top_dir / "file.py").write_text("world")
+
+    docker_cmd = "COPY . /dummy"
+    dockerfile = rel_top_dir / "Dockerfile"
+    dockerfile.write_text(f"FROM python:3.12-slim\n{docker_cmd}\n")
+
+    dockerignore = rel_top_dir / ".dockerignore"
+    dockerignore.write_text("*.txt\n!/keep.txt\n")
+
+    if use_dockerfile:
+        image = Image.from_dockerfile(dockerfile, context_dir=rel_top_dir)
+        layer = 1 if builder_version <= "2025.06" else 0
+    else:
+        image = Image.debian_slim().dockerfile_commands([docker_cmd], context_dir=rel_top_dir)
+        layer = 0
+
+    build_image(image, client)
+    layers = get_image_layers(image.object_id, servicer)
+    assert docker_cmd in layers[layer].dockerfile_commands
+    mount_id = layers[layer].context_mount_id
+    files = {Path(fn) for fn in servicer.mount_contents[mount_id].keys()}
+    assert files == {
+        Path("/") / "Dockerfile",
+        Path("/") / ".dockerignore",
+        Path("/") / "file.py",
+        Path("/") / "keep.txt",
+    }
+
+
+@pytest.mark.parametrize("use_dockerfile", (True, False))
+@pytest.mark.usefixtures("tmp_cwd")
 def test_image_dockerfile_copy_ignore_from_file(builder_version, servicer, client, use_dockerfile):
     rel_top_dir = Path("top")
     rel_top_dir.mkdir()

@@ -7,6 +7,7 @@ Draft releases notes should be added as part of the PR introducing the change. D
 ## Python
 
 - Fixed a bug where `.map()`, `.starmap()`, and `.for_each()` could hang indefinitely when called with no inputs.
+- Fixed a bug where a `.dockerignore` exception written with a leading slash (e.g. `!/keep.txt`) was ignored when building an Image from a Dockerfile, so the excepted file was left out of the build context.
 
 ## JS
 
