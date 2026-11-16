@@ -117,16 +117,19 @@ def find_dockerignore_file(context_directory: Path, dockerfile_path: Path | None
     file exists in the same directory as <dockerfile_name>
     Finds the most specific dockerignore file that exists.
     """
-    context_directory = context_directory.resolve()
+    context_directory = context_directory.absolute()
     if dockerfile_path is not None:
-        dockerfile_path = dockerfile_path.resolve()
+        dockerfile_path = dockerfile_path.absolute()
+
+    resolved_context_directory = context_directory.resolve()
 
     def valid_dockerignore_file(fp):
         # fp has to exist
         if not fp.exists():
             return False
         # fp has to be subpath to current working directory
-        if not fp.is_relative_to(context_directory):
+        # (resolved, so ".." segments and symlinks cannot escape the context)
+        if not fp.resolve().is_relative_to(resolved_context_directory):
             return False
 
         return True

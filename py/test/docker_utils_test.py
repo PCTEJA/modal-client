@@ -257,3 +257,20 @@ def test_find_dockerignore_file_with_parent_dir_in_context_directory():
     specific_dockerignore_path.write_text("**/*")
 
     assert find_dockerignore_file(proj / ".." / "proj", dockerfile_path) == specific_dockerignore_path.absolute()
+
+
+@pytest.mark.usefixtures("tmp_cwd")
+def test_find_dockerignore_file_with_symlinked_dockerfile():
+    proj = Path("proj")
+    proj.mkdir()
+    shared = proj / "shared"
+    shared.mkdir()
+
+    target = shared / "base.Dockerfile"
+    target.write_text("FROM python:3.12-slim")
+    dockerfile_path = proj / "Dockerfile"
+    dockerfile_path.symlink_to(target.absolute())
+    specific_dockerignore_path = proj / "Dockerfile.dockerignore"
+    specific_dockerignore_path.write_text("**/*")
+
+    assert find_dockerignore_file(proj, dockerfile_path) == specific_dockerignore_path.absolute()
