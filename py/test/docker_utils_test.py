@@ -229,3 +229,31 @@ def test_find_dockerignore_file_with_relative_context_directory():
     dockerignore_path.write_text("**/*")
 
     assert find_dockerignore_file(Path("."), dockerfile_path) == dockerignore_path.absolute()
+
+
+@pytest.mark.usefixtures("tmp_cwd")
+def test_dont_find_dockerignore_file_outside_context_via_parent_dir():
+    proj = Path("proj")
+    proj.mkdir()
+
+    dockerfile_path = proj / ".." / "Dockerfile"
+    dockerfile_path.write_text("FROM python:3.12-slim")
+    outside_dockerignore_path = Path("Dockerfile.dockerignore")
+    outside_dockerignore_path.write_text("**/*")
+    generic_dockerignore_path = proj / ".dockerignore"
+    generic_dockerignore_path.write_text("**/*.py")
+
+    assert find_dockerignore_file(proj, dockerfile_path) == generic_dockerignore_path.absolute()
+
+
+@pytest.mark.usefixtures("tmp_cwd")
+def test_find_dockerignore_file_with_parent_dir_in_context_directory():
+    proj = Path("proj")
+    proj.mkdir()
+
+    dockerfile_path = proj / "Dockerfile"
+    dockerfile_path.write_text("FROM python:3.12-slim")
+    specific_dockerignore_path = proj / "Dockerfile.dockerignore"
+    specific_dockerignore_path.write_text("**/*")
+
+    assert find_dockerignore_file(proj / ".." / "proj", dockerfile_path) == specific_dockerignore_path.absolute()
